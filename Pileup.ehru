@@ -1,0 +1,24 @@
+command InstallApp(A, P):
+    create subject A
+    for p in P:
+        if Exists in (PermControl, p):
+            enter Authorized into (A, p)
+            enter Has into (A, p)
+        else:
+            create object p
+        enter Requested into (A, p)
+
+command InstallNewVersion(P2):
+    for p in P2:
+        if Exists in (PermControl, p):
+            skip
+        else:
+            for a in A:
+                if Requested in (a, p):
+                    enter ShouldExist into (PermControl, p)
+                    enter Has into (a, p)
+            if ShouldExist in (PermControl, p):
+                delete ShouldExist from (PermControl, p)
+            else:
+                create object p
+            enter Exists into (PermControl, p)

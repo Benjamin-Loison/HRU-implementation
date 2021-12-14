@@ -1,0 +1,7 @@
+command SendInternet(App, User, IntermediaryApp):
+    if SendInternetR in (App, User)
+    then
+        skip
+    else if SendInternetR in (IntermediaryApp, User) and ShareReceive in (IntermediaryApp, User) and ShareSend in (App, User)
+    then
+        enter SendInternetR in (App, User)
