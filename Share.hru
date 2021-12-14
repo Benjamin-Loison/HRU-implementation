@@ -1,0 +1,8 @@
+// WIP or use Python eval instead ?
+command SendInternet(App, User, IntermediaryApp):
+    enter IE into (IfElseControl, BoolControl0)
+    if SendInternetR in (App, User)
+        enter Skip in (SkipS, Skip)
+        delete IE from (IfElseControl, BoolControl0)
+    if IE in (IfElseControl, BoolControl0) and  SendInternetR in (IntermediaryApp, User) and ShareReceive in (IntermediaryApp, User) and ShareSend in (App, User)
+        enter SendInternetR in (App, User)

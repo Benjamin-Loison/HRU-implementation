@@ -9,14 +9,19 @@ void print(string s);
 bool contains(string subject, string find),
 	 isEmpty(string s);
 string replace(string subject, const string& search, const string& replace = ""),
-	   getSpaces(string s);
+	   getSpaces(string s),
+	   getTabs(string s),
+	   join(vector<string> parts, unsigned int i = 0, int j = -1, string delimiter = " "),
+	   toString(vector<string> vec);
 
 // could almost use parse seen last year but here we assume a well written code so we can restrict the syntax
 int main()
 {
-	string fileName = "Share.ehru";
+	/*string fileName = "Share.ehru";
 	vector<string> lines = getFileContent(fileName),
 		           newLines;
+	//unsigned short shiftTab = 0;
+	string shiftTabs = "";
 	unsigned int linesSize = lines.size();
 	for(unsigned int linesIndex = 0; linesIndex < linesSize; linesIndex++)
 	{
@@ -29,29 +34,71 @@ int main()
 		else if(contains(line, "else if"))
 		{
 			vector<string> lineParts = split(line, "else if");
-			newLines.push_back(lineParts[0] + "else");
-			newLines.push_back(lineParts[0] + "\tif");
+			string tabs = getTabs(line);
+			newLines.push_back(shiftTabs + tabs + "else");
+			shiftTabs += "\t";
+			newLines.push_back(shiftTabs + tabs + "if" + lineParts[1]);
 		}
 		else
 		{
-			newLines.push_back(line);
+			newLines.push_back(shiftTabs + line);
 		}
+	}
+	string newLinesStr = toString(newLines);
+	print(newLinesStr);*/
+	string fileName = "Share.hru";
+	vector<string> lines = getFileContent(fileName);
+	unsigned int linesSize = lines.size();
+	for(unsigned int linesIndex = 0; linesIndex < linesSize; linesIndex++)
+	{
+		string line = lines[linesIndex];
+		// what if we add a permission that a subject already have on an object ? we don't really care for Skip because we could make Skip objects as many skip there are
+		//
 	}
 	return 0;
 }
 
-string getSpaces(string s)
+string join(vector<string> parts, unsigned int i, int j, string delimiter) // j excluded
+{
+    if(j == -1)
+        j = parts.size();
+    string res = "";
+    for(unsigned int part = i; part < j; part++)
+    {
+        res += parts[part];
+        if(part < j - 1)
+            res += delimiter;
+    }
+    return res;
+}
+
+string toString(vector<string> vec)
+{
+	return join(vec, 0, -1, "\n");
+}
+
+string get(string s, char delimiter)
 {
 	string res = "";
-	unsigned short sLen = s.length();
+    unsigned short sLen = s.length();
     for(unsigned short sIndex = 0; sIndex < sLen; sIndex++)
     {
         char c = s[sIndex];
         if(c != ' ')
             break;
-		res += " ";
+        res += " ";
     }
     return res;
+}
+
+string getTabs(string s)
+{
+	return get(s, '\t');
+}
+
+string getSpaces(string s)
+{
+    return get(s, ' ');
 }
 
 string replace(string subject, const string& search, const string& replace)
