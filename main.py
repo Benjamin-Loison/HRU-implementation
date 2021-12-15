@@ -30,9 +30,11 @@ def enter(right, subject, object = DEFAULT):
         currentRights[key] = [right]
 
 def createObject(Xo):
+    global objects
     objects += [Xo]
     
 def createSubject(Xs):
+    global subjects
     subjects += [Xs]
 
 def delete(right, subject, object = DEFAULT):
@@ -41,9 +43,7 @@ def delete(right, subject, object = DEFAULT):
         if right in currentRights[key]:
             currentRights[key].remove(right)
 
-#def checkGoal(scriptName):
-#    global currentRights
-scriptName = 'Share'#'Share' # otherwise using checkGoal function involves bugs
+scriptName = 'Pileup'#'Share'
 fileName = scriptName + '.py'
 f = open(fileName)
 linesStr = f.read()
@@ -52,46 +52,33 @@ lines = linesStr.splitlines()
 
 currentRights, commands, objects, subjects = {}, {}, [], []
 
-for line in lines:
+for linesIndex in range(len(lines)):
+    line = lines[linesIndex]
     if line.startswith('def '):
         line = line.replace('def ', '')
         lineParts = line.split('(')
         command = lineParts[0]
-        if command == 'goal':
+        if command == 'goal' or lines[linesIndex - 1].startswith("# manual"):
             continue
         arguments = lineParts[1].split(')')[0].replace(' ', '').split(',')
         commands[command] = arguments
 
 exec(linesStr)
 
-rightsLen = len(rights)
-t = [list(combinations(rights, i)) for i in range(rightsLen)]
-rightsCombinaisons = [item for sublist in t for item in sublist]
-initialCurrentRights = deepcopy(currentRights)
 commandsNumber = 0
 noThreat = True
 
-# could still make IntermediaryApp be different at each command or should force no new permission given to the IntermediaryApp except if the script adds it
 while noThreat:
     commandsCombinaison = [p for p in product(commands, repeat=commandsNumber)]
-    allRightsCombinaisons = list(product(*[rightsCombinaisons for i in range(commandsNumber)]))
     
-    for allRightsCombinaisonsIndex in range(len(allRightsCombinaisons)):
-        currentRights = deepcopy(initialCurrentRights)
-        allRightsCombinaison = allRightsCombinaisons[allRightsCombinaisonsIndex]
-        #print('testing', commandsCombinaison, allRightsCombinaison)
-        for commandsIndex in range(commandsNumber):
-            command = commandsCombinaison[0][commandsIndex]
-            arguments = commands[command]
-            for right in allRightsCombinaison[commandsIndex]:
-                enter(right, arguments[0])
-            exec(command + '(' + ', '.join(['"' + argument + '"' for argument in arguments]) + ')')
-        if goal():
-            print('goal reached for:', commandsCombinaison, allRightsCombinaison)
-            noThreat = False
-            break
+    print('testing', commandsCombinaison)
+    for commandsIndex in range(commandsNumber):
+        command = commandsCombinaison[0][commandsIndex]
+        arguments = commands[command]
+        
+        exec(command + '(' + ', '.join(['"' + argument + '"' for argument in arguments]) + ')')
+    if goal():
+        print('goal reached for:', commandsCombinaison)
+        noThreat = False
+        break
     commandsNumber += 1
-
-#scripts = ['Share', 'Pileup']
-#for script in scripts:
-#    checkGoal(script)

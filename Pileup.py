@@ -8,8 +8,11 @@ PermControl = 'PermControl'
 #Objects: P
 #Subjects: A, PermControl
 
+subjects = [PermControl]
+
 rights = [Exists, Has, Authorized, Requested, ShouldExist]
 
+# manual
 def getA():
     Acopy = subjects.copy()
     Acopy.remove(PermControl)
