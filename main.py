@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from os import chdir
 from copy import deepcopy
 from itertools import combinations, product
