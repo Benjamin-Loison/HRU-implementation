@@ -1,9 +1,5 @@
-(**		  +~~~~~~~~~~~~~~~~~~~~~~~~~~+
-  *		  | Définition du modèle HRU |
-  *		  +~~~~~~~~~~~~~~~~~~~~~~~~~~+
-*)
-type right = Int.t
-let null_right : right = Int.zero
+type right_t = Int.t
+let null_right : right_t = Int.zero
 
 type subject_t = string
 type object_t = string
@@ -11,21 +7,24 @@ type object_t = string
 type state_r = {
 	subj: subject_t list;
 	obj: object_t list;
-	rights: (subject_t * object_t, right) Hashtbl.t
+	rights: (subject_t * object_t, right_t) Hashtbl.t
 	}
 
 type condition_t =
-	Basic_condition of right * subject_t * object_t
+	Top
+	| Basic_condition of right_t * subject_t * object_t
 	| And of condition_t * condition_t
 	| Or of condition_t * condition_t
+	| Neg of condition_t
+
 type operation_t =
-	Enter of right * subject_t * object_t
-	| Delete of right * subject_t * object_t
+	Enter of right_t * subject_t * object_t
+	| Delete of right_t * subject_t * object_t
 	| Create_subject of subject_t
 	| Destroy_subject of subject_t
 	| Create_object of object_t
 	| Destroy_object of object_t
-type command_t = string list * string list * condition_t * operation_t list
+type command_t = condition_t * (operation_t list)
 
 
 
@@ -44,7 +43,7 @@ let execute_operation (st: state_r) (op: operation_t) : state_r =
 					| None -> null_right
 					| Some i -> i
 					in
-				let new_rights = st.rights in
+				let new_rights = Hashtbl.copy st.rights in
 				Hashtbl.add new_rights (s, o) (Int.logor old_right r);
 				{ subj = st.subj; obj = st.obj; rights = new_rights }
 				)
@@ -61,8 +60,7 @@ let execute_operation (st: state_r) (op: operation_t) : state_r =
 					| None -> null_right
 					| Some i -> i
 					in
-				let new_rights = st.rights in
-				(** TODO *)
+				let new_rights = Hashtbl.copy st.rights in
 				if Int.logand old_right r > 0 then
 					Hashtbl.add new_rights (s, o) (old_right - r);
 				{ subj = st.subj; obj = st.obj; rights = new_rights }
@@ -78,15 +76,21 @@ let execute_operation (st: state_r) (op: operation_t) : state_r =
 
 
 
+let checkRight (st: state_r)
+	(r: right_t) (s: subject_t) (o : object_t) : bool =
+	match Hashtbl.find_opt st.rights (s, o) with
+	| None -> false
+	| Some a -> (Int.logand r a) > 0
+
+
+
 let rec check_condition (st: state_r) (condition: condition_t) : bool =
 	match condition with
-	| Basic_condition (r, s, o) ->
-		(match Hashtbl.find_opt st.rights (s, o) with
-		| None -> false
-		| Some a -> (Int.logand r a) > 0
-		)
+	| Basic_condition (r, s, o) -> checkRight st r s o
 	| And (c, c') -> (check_condition st c) && (check_condition st c')
 	| Or (c, c') -> (check_condition st c) || (check_condition st c')
+	| Top -> true
+	| Neg c -> not (check_condition st c)
 
 let test_equal (st : state_r) (st' : state_r) : bool =
 	if
@@ -112,60 +116,27 @@ let test_equal (st : state_r) (st' : state_r) : bool =
 			false
 
 let execute_command (st: state_r) (cmd: command_t) : state_r =
-	let _, _, condition, _ = cmd in
+	let condition, _ = cmd in
 	if check_condition st condition then
-		let _, _, _, ops = cmd in
+		let _, ops = cmd in
 		List.fold_left
 			(fun old_st op -> execute_operation old_st op)
 			st ops
 	else st
 
-
-
-(**		   +~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+
-  *		   | Recherche par bruteforce avec backtracking |
-  *		   +~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+
-*)
-
-
-
-let test () =
-	(* Definition of some subjects *)
-	let subject_1 : subject_t = "subject 1" and subject_2 : subject_t = "subject 2"
-	and subject_3 : subject_t = "subject 3" and subject_4 : subject_t = "subject 4"
-	(* Definition of some objects *)
-	and object_1 : object_t = "object 1" and object_2 : object_t = "object 2"
-	and object_3 : object_t = "object 3" and object_4 : object_t = "object 4"
-	(* Definition of some operations *)
-	and operation_1 : operation_t = Enter (1, "subject 1", "object 1")
-	and operation_2 : operation_t = Delete (1, "subject 1", "object 1")
-	in
-	let condition_1 : condition_t = Basic_condition (1, "subject 1", "object 1")
-	in
-	(* TODO: finir le test *)
-	()
-
-
-
-let rec reach_failure (test: state_r -> bool)
-	(current_path: command_t list option)
-	(initial_state: state_r) (cmds: command_t list) : (command_t list) option =
-	if test initial_state
-		then current_path
-	else
-		List.fold_left
-			(fun cur_path cmd ->
-				match cur_path with
-				| Some p -> cur_path
-				| None ->
-				(
-					let new_state = execute_command initial_state cmd in
-					if test_equal new_state initial_state then
-						None
-					else
-						reach_failure test current_path new_state cmds
-				)
+let rec path_finder (st: state_r) (available_commands: command_t list)
+	(test: state_r -> bool) (limit: int) : command_t list option =
+	if limit < 0 then None else
+	if test st then Some [] else
+	List.fold_left
+		(fun path command ->
+			try
+				let st' = execute_command st command in
+				match path_finder st' available_commands test (limit - 1) with
+				| None -> path
+				| Some p -> Some (List.append [command] p)
+			with _ ->
+				path
 			)
-			current_path
-			cmds
-
+		None
+		available_commands
